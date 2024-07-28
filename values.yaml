@@ -1,0 +1,285 @@
+# Global settings
+global:
+  environment: development  # Options: development, staging, production
+  tenantName: example-tenant
+
+# Common settings for all applications
+common:
+  serviceAccount: application-sa
+  replicaCount: 1
+  imagePullPolicy: IfNotPresent
+  imageRegistry: quay.io
+  imageProject: your-project
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: "512Mi"
+    requests:
+      cpu: "0.1"
+      memory: "128Mi"
+
+# Predefined resource profiles
+# These profiles are defined in configurations/resources.yaml
+# Uncomment and modify if you want to override them here
+# resourceProfiles:
+#   small:
+#     requests:
+#       cpu: "100m"
+#       memory: "128Mi"
+#     limits:
+#       cpu: "200m"
+#       memory: "256Mi"
+#   medium:
+#     requests:
+#       cpu: "250m"
+#       memory: "512Mi"
+#     limits:
+#       cpu: "500m"
+#       memory: "1Gi"
+#   large:
+#     requests:
+#       cpu: "500m"
+#       memory: "1Gi"
+#     limits:
+#       cpu: "1"
+#       memory: "2Gi"
+
+# Application-specific configurations
+applications:
+  - name: frontend
+    image:
+      repository: openshift/hello-openshift
+      tag: latest
+    ports:
+      - name: http
+        containerPort: 8080
+        servicePort: 80
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 8080
+    route:
+      enabled: true
+      # host: frontend.example.com
+      # path: /
+      # tls:
+      #   termination: edge
+      #   insecureEdgeTerminationPolicy: Redirect
+    env:
+      - name: RESPONSE
+        value: "Hello from the frontend!"
+    resourceProfile: small
+    # resources:
+    #   limits:
+    #     cpu: "200m"
+    #     memory: "256Mi"
+    #   requests:
+    #     cpu: "100m"
+    #     memory: "128Mi"
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    serviceMonitor:
+      enabled: true
+      path: /metrics
+      interval: 15s
+    # podDisruptionBudget:
+    #   minAvailable: 1
+    # podAntiAffinity: true
+    # initContainers:
+    #   - name: init-frontend
+    #     image: busybox
+    #     command: ['sh', '-c', 'echo "Initializing frontend"; sleep 10']
+    # volumeMounts:
+    #   - name: config
+    #     mountPath: /app/config
+    # volumes:
+    #   - name: config
+    #     configMap:
+    #       name: frontend-config
+    # priorityClassName: high-priority
+    # labels:
+    #   app.openshift.io/runtime: nodejs
+    # annotations:
+    #   app.openshift.io/vcs-uri: "https://github.com/example/frontend"
+    # autoscaling:
+    #   enabled: false
+    #   minReplicas: 1
+    #   maxReplicas: 10
+    #   targetCPUUtilizationPercentage: 80
+    #   targetMemoryUtilizationPercentage: 80
+    # tolerations: []
+    # nodeSelector: {}
+    # affinity: {}
+
+  - name: backend
+    image:
+      repository: openshift/hello-openshift
+      tag: latest
+    replicaCount: 2
+    ports:
+      - name: http
+        containerPort: 8080
+        servicePort: 8080
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+    route:
+      enabled: true
+    env:
+      - name: RESPONSE
+        value: "Hello from the backend!"
+    resources:
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    podMonitor:
+      enabled: true
+      path: /metrics
+      interval: 15s
+    podAntiAffinity: true
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: backend
+    # Add other configurations similar to the frontend...
+
+# Network Policies configuration
+networkPolicies:
+  enabled: true
+  # defaultDeny: false
+  # additionalPolicies: []
+
+# PostgreSQL configuration
+postgresql:
+  enabled: false
+  # clusterName: postgresql
+  # instances: 2
+  # postgresVersion: "13"
+  # primary:
+  #   resources:
+  #     limits:
+  #       cpu: "2"
+  #       memory: "4Gi"
+  #     requests:
+  #       cpu: "1"
+  #       memory: "2Gi"
+  # replica:
+  #   resources:
+  #     limits:
+  #       cpu: "1"
+  #       memory: "2Gi"
+  #     requests:
+  #       cpu: "0.5"
+  #       memory: "1Gi"
+  # pgBouncer:
+  #   replicas: 2
+  #   resources:
+  #     limits:
+  #       cpu: "0.5"
+  #       memory: "512Mi"
+  #     requests:
+  #       cpu: "0.2"
+  #       memory: "256Mi"
+  # storage:
+  #   size: 20Gi
+  #   storageClass: managed-premium
+  # backup:
+  #   enabled: true
+  #   storageSize: 5Gi
+  #   storageClass: standard
+  #   schedule:
+  #     full: "0 1 * * 0"
+  #     incremental: "0 1 * * 1-6"
+  #   s3:
+  #     enabled: false
+  #     bucket: your-backup-bucket
+  #     region: us-west-2
+  #     endpoint: your-s3-endpoint
+  #     accessKeyId: your-access-key
+  #     secretAccessKey: your-secret-key
+  # users:
+  #   - name: "{{ .Release.Name }}-user"
+  #     databases:
+  #       - "{{ .Release.Name }}-db"
+  # databases:
+  #   - name: "{{ .Release.Name }}-db"
+  # config:
+  #   huge_pages: try
+  #   shared_buffers: 1GB
+  #   work_mem: 4MB
+  #   maintenance_work_mem: 64MB
+  #   effective_cache_size: 3GB
+  #   max_connections: 100
+  # pgAdmin:
+  #   enabled: false
+  #   replicas: 1
+  #   resources:
+  #     limits:
+  #       cpu: "0.5"
+  #       memory: "512Mi"
+  #     requests:
+  #       cpu: "0.2"
+  #       memory: "256Mi"
+
+# Global PodSecurityPolicy
+# podSecurityPolicy:
+#   enabled: false
+
+# Global PriorityClass
+# priorityClass:
+#   enabled: false
+#   name: high-priority
+
+# Global PodDisruptionBudget
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1
+#   # or
+#   # maxUnavailable: 25%
+
+# Global Topology Spread Constraints
+# topologySpreadConstraints: []
+
+# Global Pod Security Context
+# podSecurityContext: {}
+
+# Global Container Security Context
+# securityContext: {}
+
+# Global Image Pull Secrets
+# imagePullSecrets: []
+
+# Custom Labels
+# customLabels: {}
+
+# Custom Annotations
+# customAnnotations: {}

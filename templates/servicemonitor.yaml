@@ -1,0 +1,21 @@
+{{- range .Values.applications }}
+{{- if and (hasKey . "serviceMonitor") .serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ .name }}
+  endpoints:
+    - port: {{ (index .ports 0).name | default "http" }}
+      path: {{ .serviceMonitor.path | default "/metrics" }}
+      interval: {{ .serviceMonitor.interval | default "15s" }}
+{{- end }}
+{{- end }}

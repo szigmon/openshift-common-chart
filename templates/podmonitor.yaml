@@ -1,0 +1,21 @@
+{{- range .Values.applications }}
+{{- if and (hasKey . "podMonitor") .podMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ .name }}
+  podMetricsEndpoints:
+    - port: {{ (index .ports 0).name | default "http" }}
+      path: {{ .podMonitor.path | default "/metrics" }}
+      interval: {{ .podMonitor.interval | default "15s" }}
+{{- end }}
+{{- end }}

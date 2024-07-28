@@ -1,0 +1,18 @@
+{{- range .Values.applications }}
+{{- if .podDisruptionBudget }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  {{- toYaml .podDisruptionBudget | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ .name }}
+{{- end }}
+{{- end }}

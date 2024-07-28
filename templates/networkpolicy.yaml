@@ -1,0 +1,35 @@
+{{- if .Values.networkPolicies.enabled }}
+{{- range .Values.applications }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "common.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ .name }}
+  ingress:
+    - from:
+        - podSelector: {}
+  policyTypes:
+    - Ingress
+{{- end }}
+{{- if .Values.networkPolicies.defaultDeny }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+{{- end }}
+{{- end }}

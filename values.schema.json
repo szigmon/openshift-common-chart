@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"]
+        },
+        "tenantName": {
+          "type": "string"
+        }
+      },
+      "required": ["environment", "tenantName"]
+    },
+    "common": {
+      "type": "object",
+      "properties": {
+        "serviceAccount": {
+          "type": "string"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        },
+        "imageRegistry": {
+          "type": "string"
+        },
+        "imageProject": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "required": ["cpu", "memory"]
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "required": ["cpu", "memory"]
+            }
+          },
+          "required": ["limits", "requests"]
+        }
+      },
+      "required": ["serviceAccount", "replicaCount", "imagePullPolicy", "imageRegistry", "imageProject"]
+    },
+    "resourceProfiles": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9-]+$": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "required": ["cpu", "memory"]
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              },
+              "required": ["cpu", "memory"]
+            }
+          },
+          "required": ["requests", "limits"]
+        }
+      }
+  },
+    "applications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "tag": {
+                "type": "string"
+              }
+            },
+            "required": ["repository", "tag"]
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "containerPort": {
+                  "type": "integer"
+                },
+                "servicePort": {
+                  "type": "integer"
+                }
+              },
+              "required": ["name", "containerPort", "servicePort"]
+            }
+          },
+          "route": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              }
+            },
+            "required": ["enabled"]
+          },
+          "env": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "value"]
+            }
+          },
+          "resourceProfile": {
+            "type": "string"
+          },
+          "livenessProbe": {
+            "type": "object"
+          },
+          "readinessProbe": {
+            "type": "object"
+          },
+          "podDisruptionBudget": {
+            "type": "object",
+            "properties": {
+              "minAvailable": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["minAvailable"]
+          },
+          "podAntiAffinity": {
+            "type": "boolean"
+          },
+          "initContainers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "image": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["name", "image"]
+            }
+          },
+          "volumeMounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "mountPath": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "mountPath"]
+            }
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "configMap": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name"]
+                },
+                "secret": {
+                  "type": "object",
+                  "properties": {
+                    "secretName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["secretName"]
+                }
+              },
+              "required": ["name"]
+            }
+          }
+        },
+        "required": ["name", "image", "ports"]
+      }
+    },
+    "networkPolicies": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "postgresql": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "interval": {
+          "type": "string"
+        }
+      },
+      "required": ["enabled"]
+    }
+  },
+  "required": ["global", "common", "applications"]
+}

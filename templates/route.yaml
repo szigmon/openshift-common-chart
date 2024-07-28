@@ -1,0 +1,29 @@
+{{- range .Values.applications }}
+{{- if .route.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  {{- if .route.host }}
+  host: {{ .route.host }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "common.fullname" $ }}-{{ .name }}
+  port:
+    targetPort: http
+  {{- if .route.tls }}
+  tls:
+    {{- toYaml .route.tls | nindent 4 }}
+  {{- else }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  {{- end }}
+{{- end }}
+{{- end }}

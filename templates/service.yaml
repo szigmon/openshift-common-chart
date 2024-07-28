@@ -1,0 +1,19 @@
+{{- range .Values.applications }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "common.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  type: {{ .service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .service.port | default 80 }}
+      targetPort: {{ .service.targetPort | default (index .ports 0).containerPort }}
+      protocol: TCP
+      name: {{ (index .ports 0).name | default "http" }}
+  selector:
+    {{- include "common.appSelectorLabel" . | nindent 6 }}
+{{- end }}

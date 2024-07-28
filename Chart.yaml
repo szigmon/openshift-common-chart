@@ -1,0 +1,16 @@
+apiVersion: v2
+name: common-helm
+description: A Helm chart for easily onboarding applications to OpenShift Dedicated
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Sagi Zigmon
+    email: szigmon@redhat.com
+keywords:
+  - openshift
+  - openshift-dedicated
+  - onboarding
+home: https://github.com/szigmon/common-helm
+sources:
+  - https://github.com/szigmon/common-helm
