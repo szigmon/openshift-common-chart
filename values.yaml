@@ -168,7 +168,7 @@ networkPolicies:
 
 # PostgreSQL configuration
 postgresql:
-  enabled: true
+  enabled: false
   clusterName: postgresql
   instances: 2
   postgresVersion: "14"
