@@ -9,62 +9,8 @@ metadata:
     {{- include "common.labels" . | nindent 4 }}
     app.kubernetes.io/component: {{ .Values.postgresql.clusterName }}
 spec:
-  image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.8-0
-  postgresVersion: {{ .Values.postgresql.postgresVersion }}
-  instances: {{ .Values.postgresql.instances }}
-  users:
-    {{- toYaml .Values.postgresql.users | nindent 4 }}
-  databases:
-    {{- toYaml .Values.postgresql.databases | nindent 4 }}
-  dataSource:
-    postgresCluster:
-      name: {{ include "common.fullname" . }}-{{ .Values.postgresql.clusterName }}
-  pgBouncer:
-    replicas: {{ .Values.postgresql.pgBouncer.replicas }}
-    resources:
-      {{- toYaml .Values.postgresql.pgBouncer.resources | nindent 6 }}
-  backups:
-    pgbackrest:
-      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.38-0
-      repos:
-      - name: repo1
-        volume:
-          volumeClaimSpec:
-            accessModes:
-            - "ReadWriteOnce"
-            resources:
-              requests:
-                storage: {{ .Values.postgresql.backup.storageSize }}
-            {{- if .Values.postgresql.backup.storageClass }}
-            storageClassName: {{ .Values.postgresql.backup.storageClass }}
-            {{- end }}
-        {{- if .Values.postgresql.backup.schedule }}
-        schedules:
-          full: {{ .Values.postgresql.backup.schedule.full | quote }}
-          incremental: {{ .Values.postgresql.backup.schedule.incremental | quote }}
-        {{- end }}
-      {{- if .Values.postgresql.backup.s3.enabled }}
-      - name: repo2
-        s3:
-          bucket: {{ .Values.postgresql.backup.s3.bucket }}
-          region: {{ .Values.postgresql.backup.s3.region }}
-          endpoint: {{ .Values.postgresql.backup.s3.endpoint }}
-        schedules:
-          full: {{ .Values.postgresql.backup.schedule.full | quote }}
-          incremental: {{ .Values.postgresql.backup.schedule.incremental | quote }}
-      {{- end }}
-  proxy:
-    pgBouncer:
-      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.16-0
-  monitoring:
-    pgmonitor:
-      exporter:
-        image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.0.2-0
-  patroni:
-    dynamicConfiguration:
-      postgresql:
-        parameters:
-          {{- toYaml .Values.postgresql.config | nindent 10 }}
+  image: {{ .Values.postgresql.image | default "registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.0-0" }}
+  postgresVersion: {{ .Values.postgresql.postgresVersion | default "14" }}
   instances:
     - name: instance1
       dataVolumeClaimSpec:
@@ -72,9 +18,9 @@ spec:
         - "ReadWriteOnce"
         resources:
           requests:
-            storage: {{ .Values.postgresql.storage.size }}
+            storage: {{ .Values.postgresql.storage.size | default "20Gi" }}
         {{- if .Values.postgresql.storage.storageClass }}
-        storageClassName: {{ .Values.postgresql.storage.storageClass }}
+        storageClassName: {{ .Values.postgresql.storage.storageClass | default "standard" }}
         {{- end }}
       resources:
         {{- toYaml .Values.postgresql.primary.resources | nindent 8 }}
@@ -85,19 +31,77 @@ spec:
         - "ReadWriteOnce"
         resources:
           requests:
-            storage: {{ .Values.postgresql.storage.size }}
+            storage: {{ .Values.postgresql.storage.size | default "20Gi" }}
         {{- if .Values.postgresql.storage.storageClass }}
-        storageClassName: {{ .Values.postgresql.storage.storageClass }}
+        storageClassName: {{ .Values.postgresql.storage.storageClass | default "standard" }}
         {{- end }}
       resources:
         {{- toYaml .Values.postgresql.replica.resources | nindent 8 }}
     {{- end }}
-
+  {{- if .Values.postgresql.restore.enabled }}
+  dataSource:
+    pgbackrest:
+      stanza: {{ .Values.postgresql.restore.stanza | default "db" }}
+      configuration:
+      - secret:
+          name: {{ .Values.postgresql.restore.s3.secretName | default "s3-key" }}
+      global:
+        repo1-path: {{ .Values.postgresql.restore.s3.repo1Path | default "/pgbackrest/repo1" }}
+      repo:
+        name: {{ .Values.postgresql.restore.s3.repoName | default "repo1" }}
+        s3:
+          bucket: {{ .Values.postgresql.restore.s3.bucket | default "your-backup-bucket" }}
+          endpoint: {{ .Values.postgresql.restore.s3.endpoint | default "s3.amazonaws.com" }}
+          region: {{ .Values.postgresql.restore.s3.region | default "us-east-1" }}
+  {{- end }}
+  backups:
+    pgbackrest:
+      image: {{ .Values.postgresql.backups.image | default "registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.38-0" }}
+      repos:
+      - name: repo1
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteOnce"
+            resources:
+              requests:
+                storage: {{ .Values.postgresql.backups.storageSize | default "5Gi" }}
+            {{- if .Values.postgresql.backups.storageClass }}
+            storageClassName: {{ .Values.postgresql.backups.storageClass | default "standard" }}
+            {{- end }}
+        {{- if .Values.postgresql.backups.schedule }}
+        schedules:
+          full: {{ .Values.postgresql.backups.schedule.full | quote }}
+          incremental: {{ .Values.postgresql.backups.schedule.incremental | quote }}
+        {{- end }}
+      {{- if .Values.postgresql.backups.s3.enabled }}
+      - name: repo2
+        s3:
+          bucket: {{ .Values.postgresql.backups.s3.bucket | default "your-backup-bucket" }}
+          region: {{ .Values.postgresql.backups.s3.region | default "us-west-2" }}
+          endpoint: {{ .Values.postgresql.backups.s3.endpoint | default "s3.amazonaws.com" }}
+        schedules:
+          full: {{ .Values.postgresql.backups.schedule.full | quote }}
+          incremental: {{ .Values.postgresql.backups.schedule.incremental | quote }}
+      {{- end }}
+  pgBouncer:
+    replicas: {{ .Values.postgresql.pgBouncer.replicas | default 2 }}
+    resources:
+      {{- toYaml .Values.postgresql.pgBouncer.resources | nindent 6 }}
+  monitoring:
+    pgmonitor:
+      exporter:
+        image: {{ .Values.postgresql.monitoring.exporterImage | default "registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.0.2-0" }}
+  patroni:
+    dynamicConfiguration:
+      postgresql:
+        parameters:
+          {{- toYaml .Values.postgresql.config | nindent 10 }}
   {{- if .Values.postgresql.pgAdmin.enabled }}
   userInterface:
     pgAdmin:
-      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-4.30-0
-      replicas: {{ .Values.postgresql.pgAdmin.replicas }}
+      image: {{ .Values.postgresql.pgAdmin.image | default "registry.developers.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-4.30-0" }}
+      replicas: {{ .Values.postgresql.pgAdmin.replicas | default 1 }}
       resources:
         {{- toYaml .Values.postgresql.pgAdmin.resources | nindent 8 }}
   {{- end }}

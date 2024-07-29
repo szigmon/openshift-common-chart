@@ -111,15 +111,6 @@ applications:
     #   app.openshift.io/runtime: nodejs
     # annotations:
     #   app.openshift.io/vcs-uri: "https://github.com/example/frontend"
-    # autoscaling:
-    #   enabled: false
-    #   minReplicas: 1
-    #   maxReplicas: 10
-    #   targetCPUUtilizationPercentage: 80
-    #   targetMemoryUtilizationPercentage: 80
-    # tolerations: []
-    # nodeSelector: {}
-    # affinity: {}
 
   - name: backend
     image:
@@ -170,85 +161,96 @@ applications:
         labelSelector:
           matchLabels:
             app.kubernetes.io/component: backend
-    # Add other configurations similar to the frontend...
 
 # Network Policies configuration
 networkPolicies:
   enabled: true
-  # defaultDeny: false
-  # additionalPolicies: []
 
 # PostgreSQL configuration
 postgresql:
-  enabled: false
-  # clusterName: postgresql
-  # instances: 2
-  # postgresVersion: "13"
-  # primary:
-  #   resources:
-  #     limits:
-  #       cpu: "2"
-  #       memory: "4Gi"
-  #     requests:
-  #       cpu: "1"
-  #       memory: "2Gi"
-  # replica:
-  #   resources:
-  #     limits:
-  #       cpu: "1"
-  #       memory: "2Gi"
-  #     requests:
-  #       cpu: "0.5"
-  #       memory: "1Gi"
-  # pgBouncer:
-  #   replicas: 2
-  #   resources:
-  #     limits:
-  #       cpu: "0.5"
-  #       memory: "512Mi"
-  #     requests:
-  #       cpu: "0.2"
-  #       memory: "256Mi"
-  # storage:
-  #   size: 20Gi
-  #   storageClass: managed-premium
-  # backup:
-  #   enabled: true
-  #   storageSize: 5Gi
-  #   storageClass: standard
-  #   schedule:
-  #     full: "0 1 * * 0"
-  #     incremental: "0 1 * * 1-6"
-  #   s3:
-  #     enabled: false
-  #     bucket: your-backup-bucket
-  #     region: us-west-2
-  #     endpoint: your-s3-endpoint
-  #     accessKeyId: your-access-key
-  #     secretAccessKey: your-secret-key
-  # users:
-  #   - name: "{{ .Release.Name }}-user"
-  #     databases:
-  #       - "{{ .Release.Name }}-db"
-  # databases:
-  #   - name: "{{ .Release.Name }}-db"
-  # config:
-  #   huge_pages: try
-  #   shared_buffers: 1GB
-  #   work_mem: 4MB
-  #   maintenance_work_mem: 64MB
-  #   effective_cache_size: 3GB
-  #   max_connections: 100
-  # pgAdmin:
-  #   enabled: false
-  #   replicas: 1
-  #   resources:
-  #     limits:
-  #       cpu: "0.5"
-  #       memory: "512Mi"
-  #     requests:
-  #       cpu: "0.2"
-  #       memory: "256Mi"
+  enabled: true
+  clusterName: postgresql
+  instances: 2
+  postgresVersion: "14"
+  image: "registry.developers.crunchydata.com/crunchydata/crunchy-postgres:centos8-14.0-0"
+  primary:
+    resources:
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+  replica:
+    resources:
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+      requests:
+        cpu: "0.5"
+        memory: "1Gi"
+  pgBouncer:
+    replicas: 2
+    resources:
+      limits:
+        cpu: "0.5"
+        memory: "512Mi"
+      requests:
+        cpu: "0.2"
+        memory: "256Mi"
+  storage:
+    size: 20Gi
+    storageClass: managed-premium
+  backups:
+    image: "registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.38-0"
+    storageSize: 5Gi
+    storageClass: standard
+    schedule:
+      full: "0 1 * * 0"
+      incremental: "0 1 * * 1-6"
+    s3:
+      enabled: true
+      bucket: containers-dev-pgbackrest
+      region: us-east-1
+      endpoint: s3.amazonaws.com
+      accessKeyId: your-access-key
+      secretAccessKey: your-secret-key
+  restore:
+    enabled: false
+    stanza: db
+    s3:
+      secretName: s3-key
+      repo1Path: /pgbackrest/repo1
+      repoName: repo1
+      bucket: containers-dev-pgbackrest
+      region: us-east-1
+      endpoint: s3.amazonaws.com
+  users:
+    - name: "{{ .Release.Name }}-user"
+      databases:
+        - "{{ .Release.Name }}-db"
+  databases:
+    - name: "{{ .Release.Name }}-db"
+  monitoring:
+    exporterImage: "registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.0.2-0"
+  config:
+    huge_pages: try
+    shared_buffers: 1GB
+    work_mem: 4MB
+    maintenance_work_mem: 64MB
+    effective_cache_size: 3GB
+    max_connections: 100
+  pgAdmin:
+    enabled: false
+    replicas: 1
+    resources:
+      limits:
+        cpu: "0.5"
+        memory: "512Mi"
+      requests:
+        cpu: "0.2"
+        memory: "256Mi"
+    image: "registry.developers.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-4.30-0"
 
 # Global PodSecurityPolicy
 # podSecurityPolicy:
